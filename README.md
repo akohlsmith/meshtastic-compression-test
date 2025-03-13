@@ -1,6 +1,6 @@
 # Meshtastic Compression Test
 
-[License
+[License]()
 
 This is a *very* rough utility which attempts to gather real-world statistics on the compressibility of Meshtastic traffic using an arithmetic coder I found online and stripped down/cleaned up for embedded use.
 
@@ -66,22 +66,22 @@ e.g. to use the global Meshtastic MQTT server, subscribing to `msh/US/CA/socalme
 Every time a message is successfully received, decoded, compressed and decompressed, a message is emitted to stdout:
 
 ```
-            NODEINFO_APP: 31.43% (233 symbols: 35 -> 35 bytes) best: 35 -> 24, worst: 73 -> 56, avg 45.7 bytes, avg ratio 31.01% over 3 packets
-            POSITION_APP: 28.57% (243 symbols: 28 -> 28 bytes) best: 28 -> 20, worst: 33 -> 22, avg 32.5 bytes, avg ratio 32.86% over 2 packets
-           TELEMETRY_APP: 25.00% (247 symbols: 28 -> 28 bytes) best: 28 -> 21, worst: 28 -> 21, avg 28.0 bytes, avg ratio 25.00% over 1 packets
+ POSITION_APP: 30.00% (222 symbols: 20 -> 14 bytes) best: 20 -> 14, worst: 28 -> 19, avg 27.2 bytes, avg ratio 31.93% over 2 packets
+TELEMETRY_APP: 26.09% (225 symbols: 23 -> 17 bytes) best: 22 -> 17, worst: 51 -> 38, avg 25.9 bytes, avg ratio 23.66% over 4 packets
+ NODEINFO_APP: 34.09% (219 symbols: 44 -> 29 bytes) best: 44 -> 29, worst: 87 -> 66, avg 82.7 bytes, avg ratio 25.13% over 2 packets
 ```
 
 Each line provides some statistics about the message itself, and all messages of that type which have been received to date:
 
-* `NODEINFO_APP` - the type of message
+* `POSITION_APP` - the type of message
 
-* `31.43% (233 symbols: 35 -> 35 bytes)` - the compression ratio with CDR symbols and byte counts
+* `30.00% (222 symbols: 20 -> 14 bytes)` - the compression ratio with CDR symbols and byte counts
 
-* `best: 35 -> 24, worst: 73 -> 56` - best and worst compression achieved for this message type
+* `best: 20 -> 14, worst: 28 -> 19` - best and worst compression achieved for this message type
 
-* `avg 45.7 bytes, avg ratio 31.01%` - running averages of the length and compression ratio for this type
+* `avg 27.2 bytes, avg ratio 31.93%` - running averages of the uncompressed length and compression ratio for this type
 
-* `over 3 packets` - how many packets of this type were analyzed so far
+* `over 2 packets` - how many packets of this type were analyzed so far
 
   
 
@@ -102,6 +102,20 @@ COMPRESSION STATS (15000 packets total, 1000 in the last 45 minutes, 45 seconds)
 ```
 
 For each packet type you can see what the average compression ratio was, and over how many packets of that type this was computed. It also emits some statistics about what percentage of all traffic this specific packet type occupies, both in the last interval as well as for the lifetime that the utility was running.
+
+## Why Arithmetic Coding
+
+I began wondering about the compressibility of Meshtastic traffic when I started writing my own firmware for the communications system. Watching the data dumps scroll by I couldn't help noticing that there were a lot of repeated sequences, and close-to-repeating sequences in the raw protobufs. Grabbing some traffic, I ran it through the usual suspects: zlib, gzip, bzip2, xz, and ever more esoteric compressors.
+
+All of these failed to produce any kind of meaningful compression, and in fact most failed to compress the small binary fragments at all. Several compressors require large dictionaries to be generated and this was a non-starter for a speed- and space-constrained protocol like Meshtastic. I also tried simpler/faster coding methods such as RLE but they were all pretty poor performers.
+
+I'd heard about [arithmetic coding](https://en.wikipedia.org/wiki/Arithmetic_coding) but didn't know much about it, and not being much of an academic, most of the information online was not very approachable to me. I somehow stumbled across [Nathan Clack](https://github.com/nclack/arithcode)'s arithcode repo and noticed right away that it was straight C (a hard requirement for me) and didn't appear to require a large amount of compute horsepower to compress or decompress. I found his code very difficult to understand, but set out to simplifying it and refactoring it into something I could understand and build for embedded systems. The code in the `arithcode/` directory is the (in progress) result of that.
+
+### Notes
+
+It appears that 20-40% compression is achievable for unencrypted Meshtastic protobufs. The average compression ratio bumps up ever so slightly (2-4%) if the Meshtastic radio header can also be compressed. This would break the existing mesh, but having a single bit to indicate "compressed packet" would allow both to function in a mixed mesh. The Meshtastic 3.0 protocol is slowly coming together, and I'm hopeful that releasing this code will allow others to test the compression in their own networks and hopefully provide enough evidence that this is something which should be part of the v3.0 protocol.
+
+Compression and decompression is quite fast, even on modest hardware. I'm building for the STM32 running at 48MHz and the average packet can be compressed or decompressed in under 50ms, even with no code optimization compiler flags enabled. I'm absolutely certain that there are additional gains to be made through refactoring the code, but I'm just about at the limit of what I can personally do without a better understanding of what actually is going on in the arithmetic coder.
 
 ## Contributing
 

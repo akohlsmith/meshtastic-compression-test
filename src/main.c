@@ -716,7 +716,7 @@ static void test_compression(meshtastic_data_t *md)
 						cs->comp_len_max = nout;
 					}
 
-					printf("    %20s: %3.2f%% (%zd symbols: %zd -> %zd bytes) best: %d -> %d, worst: %d -> %d, avg %.1f bytes, avg ratio %3.2f%% over %d packets\n", _portnum_str(md->portnum), ratio, nsym, len, nunc, cs->unc_len_min, cs->comp_len_min, cs->unc_len_max, cs->comp_len_max, cs->unc_len_avg, cs->comp_ratio_avg, cs->num);
+					printf("    %20s: %3.2f%% (%zd symbols: %zd -> %zd bytes) best: %d -> %d, worst: %d -> %d, avg %.1f bytes, avg ratio %3.2f%% over %d packets\n", _portnum_str(md->portnum), ratio, nsym, nunc, nout, cs->unc_len_min, cs->comp_len_min, cs->unc_len_max, cs->comp_len_max, cs->unc_len_avg, cs->comp_ratio_avg, cs->num);
 				}
 
 			} else {
